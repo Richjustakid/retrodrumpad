@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Vibe Drum Pad</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #121214;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #f0f0f0;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        p {
+            margin-bottom: 30px;
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-template-rows: repeat(3, 120px);
+            gap: 20px;
+            background: #1a1a1e;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .pad {
+            background: #2a2a30;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.05s ease, background-color 0.2s ease;
+            box-shadow: 0 6px 0 #151518, 0 8px 15px rgba(0,0,0,0.4);
+        }
+
+        .pad:active, .pad.active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #151518, 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        /* Dynamic Pad Colors & Custom Glow Glow Effects */
+        .pad[data-key="Q"] { --pad-color: #ff0055; }
+        .pad[data-key="W"] { --pad-color: #ff5500; }
+        .pad[data-key="E"] { --pad-color: #ffcc00; }
+        .pad[data-key="A"] { --pad-color: #00ff66; }
+        .pad[data-key="S"] { --pad-color: #00ffcc; }
+        .pad[data-key="D"] { --pad-color: #0099ff; }
+        .pad[data-key="Z"] { --pad-color: #7700ff; }
+        .pad[data-key="X"] { --pad-color: #ff00ff; }
+        .pad[data-key="C"] { --pad-color: #ff00aa; }
+
+        .pad {
+            border-top: 2px solid var(--pad-color);
+        }
+
+        .pad.active {
+            background-color: var(--pad-color) !important;
+            box-shadow: 0 2px 0 #151518, 0 0 30px var(--pad-color);
+        }
+
+        .key-hint {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #fff;
+            pointer-events: none;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #aaa;
+            pointer-events: none;
+        }
+
+        .pad.active .key-hint, .pad.active .label {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Vibe Pad // 303</h1>
+    <p>Click pads or use keys: Q, W, E, A, S, D, Z, X, C</p>
+
+    <div class="grid">
+        <button class="pad" data-key="Q"><span class="key-hint">Q</span><span class="label">Kick</span></button>
+        <button class="pad" data-key="W"><span class="key-hint">W</span><span class="label">Snare</span></button>
+        <button class="pad" data-key="E"><span class="key-hint">E</span><span class="label">Hi-Hat</span></button>
+        
+        <button class="pad" data-key="A"><span class="key-hint">A</span><span class="label">Zap</span></button>
+        <button class="pad" data-key="S"><span class="key-hint">S</span><span class="label">Laser</span></button>
+        <button class="pad" data-key="D"><span class="key-hint">D</span><span class="label">Coin</span></button>
+        
+        <button class="pad" data-key="Z"><span class="key-hint">Z</span><span class="label">Low Tom</span></button>
+        <button class="pad" data-key="X"><span class="key-hint">X</span><span class="label">High Tom</span></button>
+        <button class="pad" data-key="C"><span class="key-hint">C</span><span class="label">Blip</span></button>
+    </div>
+
+    <script>
+        // 1. Initialize Audio Context safely after user interaction
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // 2. Sound Synthesizers (The 8-bit Math engine!)
+        const sounds = {
+            'Kick': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
+            },
+            'Snare': (ctx) => {
+                // White noise logic for dusty retro snare
+                let bufferSize = ctx.sampleRate * 0.2,
+                    buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate),
+                    data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+                let noise = ctx.createBufferSource(); noise.buffer = buffer;
+                let filter = ctx.createBiquadFilter(); filter.type = 'highpass'; filter.frequency.value = 1000;
+                let gain = ctx.createGain(); gain.gain.setValueAtTime(0.7, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                noise.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+                noise.start(); noise.stop(ctx.currentTime + 0.2);
+            },
+            'Hi-Hat': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'triangle'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(10000, ctx.currentTime);
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+                osc.start(); osc.stop(ctx.currentTime + 0.05);
+            },
+            'Zap': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'sawtooth'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(300, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.6, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                osc.start(); osc.stop(ctx.currentTime + 0.15);
+            },
+            'Laser': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'sawtooth'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                osc.start(); osc.stop(ctx.currentTime + 0.25);
+            },
+            'Coin': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'square'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(987.77, ctx.currentTime); // B5 note
+                osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.08); // E6 note
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+                osc.start(); osc.stop(ctx.currentTime + 0.35);
+            },
+            'Low Tom': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'sine'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(180, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(90, ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.8, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            },
+            'High Tom': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'sine'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(250, ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(140, ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.8, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                osc.start(); osc.stop(ctx.currentTime + 0.2);
+            },
+            'Blip': (ctx) => {
+                let osc = ctx.createOscillator(), gain = ctx.createGain();
+                osc.type = 'triangle'; osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+            }
+        };
+
+        // 3. Core Logic Function
+        function triggerPad(padElement) {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // Visual Glow Trigger
+            padElement.classList.add('active');
+            setTimeout(() => padElement.classList.remove('active'), 100);
+
+            // Audio Playback Trigger
+            const instrument = padElement.querySelector('.label').textContent;
+            if(sounds[instrument]) {
+                sounds[instrument](audioCtx);
+            }
+        }
+
+        // 4. Click Event Listeners
+        document.querySelectorAll('.pad').forEach(pad => {
+            pad.addEventListener('click', () => triggerPad(pad));
+        });
+
+        // 5. Keyboard Event Listeners
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toUpperCase();
+            const matchingPad = document.querySelector(`.pad[data-key="${key}"]`);
+            if (matchingPad) {
+                triggerPad(matchingPad);
+            }
+        });
+    </script>
+</body>
+</html>
